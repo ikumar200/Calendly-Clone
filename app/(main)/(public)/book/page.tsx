@@ -1,32 +1,22 @@
-// 'use client'
+'use client'
 
-// import Loading from "@/components/Loading"
-// import { useUser } from "@clerk/nextjs"
-// import { redirect } from "next/navigation"
+import Loading from "@/components/Loading"
+import { useUser } from "@clerk/nextjs"
+import { redirect } from "next/navigation"
 
-// export default function PublicPage() {
-//   const { user, isLoaded } = useUser()  // Using `isLoaded` to check if user data is available
+export default function PublicPage() {
+  const { user, isLoaded } = useUser()  // Using `isLoaded` to check if user data is available
 
-//   if (!isLoaded) {
-//     // Display loading until user data is loaded
-//     return <Loading />
-//   }
+  if (!isLoaded) {
+    // Display loading until user data is loaded
+    return <Loading />
+  }
 
-//   if (!user) {
-//     // Redirect to login if no user is found
-//     return redirect('/login')
-//   }
+  if (!user) {
+    // Redirect to login if no user is found
+    return redirect('/login')
+  }
 
-//   // Once user is available, redirect to the booking page [Public Profile Page]
-//   return redirect(`/book/${user.id}`)
-// }
-
-import React from 'react'
-
-const Books = () => {
-  return (
-    <div>Books</div>
-  )
+  // Once user is available, redirect to the booking page [Public Profile Page]
+  return redirect(`/book/${user.id}`)
 }
-
-export default Books

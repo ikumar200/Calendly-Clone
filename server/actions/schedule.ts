@@ -125,11 +125,31 @@ export async function getValidTimesFromSchedule(
    // If no schedule is found, return an empty list (user has no availabilities)
    if (schedule == null) return []
 
-  // Group availabilities by day of the week (e.g., Monday, Tuesday)
-  const groupedAvailabilities = Object.groupBy(
-    schedule.availabilities,
-    a => a.dayOfWeek
-  )
+function groupBy<T, K extends string | number | symbol>(
+  array: T[],
+  keyFn: (item: T) => K
+): Record<K, T[]> {
+  return array.reduce((result, item) => {
+    const key = keyFn(item)
+    if (!result[key]) {
+      result[key] = []
+    }
+    result[key].push(item)
+    return result
+  }, {} as Record<K, T[]>)
+}
+
+//   // Group availabilities by day of the week (e.g., Monday, Tuesday)
+//   const groupedAvailabilities = Object.groupBy(
+//     schedule.availabilities,
+//     a => a.dayOfWeek
+//   )
+
+const groupedAvailabilities = groupBy(
+  schedule.availabilities,
+  a => a.dayOfWeek
+)
+
 
    // Fetch all existing Google Calendar events between start and end
    const eventTimes = await getCalendarEventTimes(userId, {
