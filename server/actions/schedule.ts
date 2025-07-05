@@ -1,9 +1,7 @@
 // This server action handles saving a user's schedule by first validating the submitted form data using Zod and checking if the user is authenticated. If valid, it either inserts a new schedule or updates an existing one in the database, ensuring the schedule is linked to the authenticated user. It then clears any previously saved availabilities for that schedule and inserts the new ones provided by the user. All database operations are executed in a single batch to ensure consistency and efficiency.
 
 'use server'
-// import { fromZonedTime } from "date-fns-tz"
-import { utcToZonedTime } from "date-fns-tz"
-
+import { fromZonedTime } from "date-fns-tz"
 import { db } from "@/drizzle/db"
 import { ScheduleAvailabilityTable, ScheduleTable } from "@/drizzle/schema"
 import { scheduleFormSchema } from "@/schema/schedule"
@@ -127,31 +125,11 @@ export async function getValidTimesFromSchedule(
    // If no schedule is found, return an empty list (user has no availabilities)
    if (schedule == null) return []
 
-function groupBy<T, K extends string | number | symbol>(
-  array: T[],
-  keyFn: (item: T) => K
-): Record<K, T[]> {
-  return array.reduce((result, item) => {
-    const key = keyFn(item)
-    if (!result[key]) {
-      result[key] = []
-    }
-    result[key].push(item)
-    return result
-  }, {} as Record<K, T[]>)
-}
-
-//   // Group availabilities by day of the week (e.g., Monday, Tuesday)
-//   const groupedAvailabilities = Object.groupBy(
-//     schedule.availabilities,
-//     a => a.dayOfWeek
-//   )
-
-const groupedAvailabilities = groupBy(
-  schedule.availabilities,
-  a => a.dayOfWeek
-)
-
+  // Group availabilities by day of the week (e.g., Monday, Tuesday)
+  const groupedAvailabilities = Object.groupBy(
+    schedule.availabilities,
+    a => a.dayOfWeek
+  )
 
    // Fetch all existing Google Calendar events between start and end
    const eventTimes = await getCalendarEventTimes(userId, {
@@ -221,85 +199,39 @@ function getAvailabilities(
     if (isFriday(date)) return "friday"
     if (isSaturday(date)) return "saturday"
     if (isSunday(date)) return "sunday"
-    return null
+    return null // If the date doesn't match any day (highly unlikely), return null
   })()
 
+  // If day of the week is not determined, return an empty array
   if (!dayOfWeek) return []
 
+  // Get the availabilities for the determined day
   const dayAvailabilities = groupedAvailabilities[dayOfWeek]
+
+  // If there are no availabilities for that day, return an empty array
   if (!dayAvailabilities) return []
 
+  // Map each availability time range to a { start: Date, end: Date } object adjusted to the user's timezone
   return dayAvailabilities.map(({ startTime, endTime }) => {
+    // Parse startTime (e.g., "09:30") into hours and minutes
     const [startHour, startMinute] = startTime.split(":").map(Number)
+    // Parse endTime (e.g., "17:00") into hours and minutes
     const [endHour, endMinute] = endTime.split(":").map(Number)
 
-    const start = utcToZonedTime(
+    // Create a start Date object set to the correct hour and minute, then convert it to the given timezone
+    const start = fromZonedTime(
       setMinutes(setHours(date, startHour), startMinute),
       timezone
     )
 
-    const end = utcToZonedTime(
+    // Create an end Date object set to the correct hour and minute, then convert it to the given timezone
+    const end = fromZonedTime(
       setMinutes(setHours(date, endHour), endMinute),
       timezone
     )
 
+    // Return the availability interval
     return { start, end }
   })
 }
-
-
-// function getAvailabilities(
-//   groupedAvailabilities: Partial<
-//     Record<
-//       (typeof DAYS_OF_WEEK_IN_ORDER)[number],
-//       (typeof ScheduleAvailabilityTable.$inferSelect)[]
-//     >
-//   >,
-//   date: Date,
-//   timezone: string
-// ): { start: Date; end: Date }[] {
-//   // Determine the day of the week based on the given date
-//   const dayOfWeek = (() => {
-//     if (isMonday(date)) return "monday"
-//     if (isTuesday(date)) return "tuesday"
-//     if (isWednesday(date)) return "wednesday"
-//     if (isThursday(date)) return "thursday"
-//     if (isFriday(date)) return "friday"
-//     if (isSaturday(date)) return "saturday"
-//     if (isSunday(date)) return "sunday"
-//     return null // If the date doesn't match any day (highly unlikely), return null
-//   })()
-
-//   // If day of the week is not determined, return an empty array
-//   if (!dayOfWeek) return []
-
-//   // Get the availabilities for the determined day
-//   const dayAvailabilities = groupedAvailabilities[dayOfWeek]
-
-//   // If there are no availabilities for that day, return an empty array
-//   if (!dayAvailabilities) return []
-
-//   // Map each availability time range to a { start: Date, end: Date } object adjusted to the user's timezone
-//   return dayAvailabilities.map(({ startTime, endTime }) => {
-//     // Parse startTime (e.g., "09:30") into hours and minutes
-//     const [startHour, startMinute] = startTime.split(":").map(Number)
-//     // Parse endTime (e.g., "17:00") into hours and minutes
-//     const [endHour, endMinute] = endTime.split(":").map(Number)
-
-//     // Create a start Date object set to the correct hour and minute, then convert it to the given timezone
-//     const start = fromZonedTime(
-//       setMinutes(setHours(date, startHour), startMinute),
-//       timezone
-//     )
-
-//     // Create an end Date object set to the correct hour and minute, then convert it to the given timezone
-//     const end = fromZonedTime(
-//       setMinutes(setHours(date, endHour), endMinute),
-//       timezone
-//     )
-
-//     // Return the availability interval
-//     return { start, end }
-//   })
-// }
 

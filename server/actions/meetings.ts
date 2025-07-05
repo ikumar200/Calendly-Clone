@@ -2,12 +2,10 @@
 
 import { db } from "@/drizzle/db";
 import { meetingActionSchema } from "@/schema/meetings";
-// import { fromZonedTime } from "date-fns-tz";
+import { fromZonedTime } from "date-fns-tz";
 import { getValidTimesFromSchedule } from "./schedule";
 import { createCalendarEvent } from "../google/googleCalendar";
 import { z } from "zod";
-import { zonedTimeToUtc } from "date-fns-tz"; // ✅ ADD this
-
 
 //Server action to create a meeting
 export async function createMeeting(
@@ -39,15 +37,11 @@ export async function createMeeting(
       throw new Error("Event not found.");
     }
 
-    // // Interpret the start time as being in the user's timezone and convert it to a UTC Date
-    // const startInTimezone = fromZonedTime(data.startTime, data.timezone);
+    // Interpret the start time as being in the user's timezone and convert it to a UTC Date
+    const startInTimezone = fromZonedTime(data.startTime, data.timezone);
 
-    // // Check if the selected time is valid for the event's availability
-    // const validTimes = await getValidTimesFromSchedule([startInTimezone], event);
-
-const startInUtc = zonedTimeToUtc(data.startTime, data.timezone);
-const validTimes = await getValidTimesFromSchedule([startInUtc], event);
-
+    // Check if the selected time is valid for the event's availability
+    const validTimes = await getValidTimesFromSchedule([startInTimezone], event);
 
     // If the selected time is not valid, throw an error
     if (validTimes.length === 0) {
@@ -57,7 +51,7 @@ const validTimes = await getValidTimesFromSchedule([startInUtc], event);
     // Create the Google Calendar event with all necessary details
     await createCalendarEvent({
       ...data, // guest info, timezone, etc.
-      startTime: startInUtc, // adjusted to the right timezone
+      startTime: startInTimezone, // adjusted to the right timezone
       durationInMinutes: event.durationInMinutes, // use duration from the event
       eventName: event.name, // use event name from DB
     });

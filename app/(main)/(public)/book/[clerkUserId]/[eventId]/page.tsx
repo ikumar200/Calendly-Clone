@@ -34,20 +34,11 @@ export default async function BookingPage({
       const client = await clerkClient()
       const calendarUser = await client.users.getUser(clerkUserId)
 
-    //  // Define a date range from now (rounded up to the nearest 15 minutes) to 1 year later
-    // const startDate = roundToNearestMinutes(new Date(), {
-    //   nearestTo: 15,
-    //   roundingMethod: "ceil",
-    // })
-
-    const now = new Date();
-const utcNow = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
-
-const startDate = roundToNearestMinutes(utcNow, {
-  nearestTo: 15,
-  roundingMethod: "ceil",
-})
-
+     // Define a date range from now (rounded up to the nearest 15 minutes) to 1 year later
+    const startDate = roundToNearestMinutes(new Date(), {
+      nearestTo: 15,
+      roundingMethod: "ceil",
+    })
     
     const endDate = endOfDay(addYears(startDate, 1)) // Set range to 1 year ahead
 
